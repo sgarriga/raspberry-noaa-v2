@@ -73,6 +73,11 @@ if [ "${update_tle}" == "1" ]; then
   grep "NOAA 18" $WEATHER_TXT -A 2 >> $TLE_OUTPUT
   grep "NOAA 19" $WEATHER_TXT -A 2 >> $TLE_OUTPUT
   grep "METEOR-M 2" $WEATHER_TXT -A 2 >> $TLE_OUTPUT
+
+  # Zarya is/was the first component of the ISS launched
+  grep "ZARYA" $AMATEUR_TXT -A 2 >> $TLE_OUTPUT
+
+  grep "SPROUT" $AMATEUR_TXT -A 2 >> $TLE_OUTPUT
 elif [ ! -f $WEATHER_TXT ] || [ ! -f $AMATEUR_TXT ] || [ ! -f $TLE_OUTPUT ]; then
   log "TLE update not specified '-t' but no TLE files present - please re-run with '-t'" "INFO"
   exit 1
@@ -87,7 +92,11 @@ if [ "${wipe_existing}" == "1" ]; then
   # remove 'at' jobs to make way for new jobs
   log "Clearing existing scheduled 'at' capture jobs..." "INFO"
   for i in $(atq | awk '{print $1}'); do
-    atrm "$i"
+    # only remove our own jobs
+    at -c "$1" | grep -q "$NOAA_HOME" 
+    if [ $? -eq 0 ]; then
+        atrm "$i"
+    fi
   done
 
   # remove database passes for remainder of day
@@ -137,6 +146,27 @@ fi
 if [ "$METEOR_M2_SCHEDULE" == "true" ]; then
   log "Scheduling Meteor-M 2 captures..." "INFO"
   $NOAA_HOME/scripts/schedule_captures.sh "METEOR-M 2" "receive_meteor.sh" $TLE_OUTPUT $start_time_ms $end_time_ms >> $NOAA_LOG 2>&1
+fi
+if [ "$ISS_SSTV_SCHEDULE" == "true" ]; then
+  # No point scheduling if there's no ARISS SSTV broadcast planned,
+  # - there's no API right now so we need to check a file we configure manually
+  $NOAA_HOME/scripts/is_ariss_date.sh $start_time_ms $end_time_ms
+  if [ $? -eq 0 ]; then
+    log "Scheduling ISS SSTV captures..." "INFO"
+    $NOAA_HOME/scripts/schedule_captures.sh "ZARYA" "receive_iss.sh" $TLE_OUTPUT $start_time_ms $end_time_ms >> $NOAA_LOG 2>&1
+  else
+    log "Not an ARISS broadcast date" "INFO"
+  fi
+fi
+if [ "$SPROUT_SSTV_SCHEDULE" == "true" ]; then
+  # SPROUT only does SSTV on Sundays (JST)
+  $NOAA_HOME/scripts/is_sprout_date.sh $start_time_ms $end_time_ms
+  if [ $? -eq 0 ]; then
+    log "Scheduling SPROUT SSTV captures..." "INFO"
+    $NOAA_HOME/scripts/schedule_captures.sh "SPROUT" "receive_sprout.sh" $TLE_OUTPUT $start_time_ms $end_time_ms >> $NOAA_LOG 2>&1
+  else
+    log "SPROUT only sends SSTV on (Japanese) Sundays" "INFO"
+  fi
 fi
 log "Done scheduling jobs!" "INFO"
 

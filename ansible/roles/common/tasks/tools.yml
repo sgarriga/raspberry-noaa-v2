@@ -146,6 +146,15 @@
     group: pi
     mode: 0775
 
+- name: create sstv audio directory
+  become: yes
+  file:
+    path: "{{ audio_output }}/sstv"
+    state: directory
+    owner: pi
+    group: pi
+    mode: 0775
+
 - name: create videos directory
   become: yes
   file:

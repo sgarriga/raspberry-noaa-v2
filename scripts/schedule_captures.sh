@@ -34,9 +34,21 @@ fi
 if [ "$OBJ_NAME" == "METEOR-M 2" ]; then
   SAT_MIN_ELEV=$METEOR_M2_SAT_MIN_ELEV
 fi
+if [ "$OBJ_NAME" == "ZARYA" ]; then
+  # predict needs the entire name
+  OBJ_NAME="ISS (ZARYA)"
+  SAT_MIN_ELEV=$ISS_SSTV_SAT_MIN_ELEV
+fi
+if [ "$OBJ_NAME" == "SPROUT" ]; then
+  SAT_MIN_ELEV=$SPROUT_SSTV_SAT_MIN_ELEV
+fi
 
 # come up with prediction start/end timings for pass
 predict_start=$($PREDICT -t $TLE_FILE -p "${OBJ_NAME}" "${START_TIME_MS}" | head -1)
+if [ -z "$predict_start" ]; then
+  log "No predicted pass for ${OBJ_NAME}" "INFO"
+  exit
+fi
 predict_end=$($PREDICT   -t $TLE_FILE -p "${OBJ_NAME}" "${START_TIME_MS}" | tail -1)
 max_elev=$($PREDICT      -t $TLE_FILE -p "${OBJ_NAME}" "${START_TIME_MS}" | awk -v max=0 '{if($5>max){max=$5}}END{print max}')
 azimuth_at_max=$($PREDICT   -t $TLE_FILE -p "${OBJ_NAME}" "${START_TIME_MS}" | awk -v max=0 -v az=0 '{if($5>max){max=$5;az=$6}}END{print az}')
@@ -52,6 +64,7 @@ while [ "$(date --date="@${end_epoch_time}" +"%s")" -le "${END_TIME_MS}" ]; do
   file_date_ext=$(date --date="TZ=\"UTC\" ${start_datetime}" +%Y%m%d-%H%M%S)
 
   # schedule capture if elevation is above configured minimum
+  log "Pass Max Elev. = ${max_elev} vs. Min. for Sat. = ${SAT_MIN_ELEV}" "INFO"
   if [ "${max_elev}" -gt "${SAT_MIN_ELEV}" ]; then
     direction="null"
 
@@ -76,8 +89,8 @@ while [ "$(date --date="@${end_epoch_time}" +"%s")" -le "${END_TIME_MS}" ]; do
     
     printf -v safe_obj_name "%q" $(echo "${OBJ_NAME}" | sed "s/ /-/g")
     log "Scheduling capture for: ${safe_obj_name} ${file_date_ext} ${max_elev}" "INFO"
-    job_output=$(echo "${NOAA_HOME}/scripts/${RECEIVE_SCRIPT} \"${OBJ_NAME}\" ${safe_obj_name}-${file_date_ext} ${TLE_FILE} \
-                                                              ${start_epoch_time} ${timer} ${max_elev} ${direction} ${pass_side}" \
+    job_output=$(echo "${NOAA_HOME}/scripts/${RECEIVE_SCRIPT} \"${OBJ_NAME}\" ${safe_obj_name}-${file_date_ext} ${TLE_FILE} ${start_epoch_time} ${timer} ${max_elev} ${direction} ${pass_side}" \
+                " >${NOAA_LOG} 2>&1" \
                 | at "$(date --date="TZ=\"UTC\" ${start_datetime}" +"%H:%M %D")" ${mail_arg} 2>&1)
 
     # attempt to capture the job id if job scheduling succeeded
@@ -94,6 +107,10 @@ while [ "$(date --date="@${end_epoch_time}" +"%s")" -le "${END_TIME_MS}" ]; do
 
   next_predict=$(expr "${end_epoch_time}" + 60)
   predict_start=$($PREDICT -t $TLE_FILE -p "${OBJ_NAME}" "${next_predict}" | head -1)
+  if [ -z "$predict_start" ]; then
+    log "No more predicted passes for ${OBJ_NAME}" "INFO"
+    exit
+  fi
   predict_end=$($PREDICT   -t $TLE_FILE -p "${OBJ_NAME}" "${next_predict}" | tail -1)
   max_elev=$($PREDICT      -t $TLE_FILE -p "${OBJ_NAME}" "${next_predict}" | awk -v max=0 '{if($5>max){max=$5}}END{print max}')
   azimuth_at_max=$($PREDICT   -t $TLE_FILE -p "${OBJ_NAME}" "${next_predict}" | awk -v max=0 -v az=0 '{if($5>max){max=$5;az=$6}}END{print az}')

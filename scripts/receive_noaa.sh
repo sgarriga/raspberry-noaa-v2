@@ -35,27 +35,39 @@ export PASS_SIDE=$8
 
 # export some variables for use in the annotation - note that we do not
 # want to export all of .noaa-v2.conf because it contains sensitive info
+export BIAS_TEE=""
+usb_bias_tee="false"
 if [ "$SAT_NAME" == "NOAA 15" ]; then
   export GAIN=$NOAA_15_GAIN
   export SUN_MIN_ELEV=$NOAA_15_SUN_MIN_ELEV
   export SDR_DEVICE_ID=$NOAA_15_SDR_DEVICE_ID
-  export BIAS_TEE=$NOAA_15_ENABLE_BIAS_TEE
+  if [ "$NOAA_15_ENABLE_BIAS_TEE" != "usb" ]; then
+      export BIAS_TEE=$NOAA_15_ENABLE_BIAS_TEE
+  else
+      usb_bias_tee="true"
+  fi
   export FREQ_OFFSET=$NOAA_15_FREQ_OFFSET
   export SAT_MIN_ELEV=$NOAA_15_SAT_MIN_ELEV
-fi
-if [ "$SAT_NAME" == "NOAA 18" ]; then
+elif [ "$SAT_NAME" == "NOAA 18" ]; then
   export GAIN=$NOAA_18_GAIN
   export SUN_MIN_ELEV=$NOAA_18_SUN_MIN_ELEV
   export SDR_DEVICE_ID=$NOAA_18_SDR_DEVICE_ID
-  export BIAS_TEE=$NOAA_18_ENABLE_BIAS_TEE
+  if [ "$NOAA_18_ENABLE_BIAS_TEE" != "usb" ]; then
+      export BIAS_TEE=$NOAA_18_ENABLE_BIAS_TEE
+  else
+      usb_bias_tee="true"
+  fi
   export FREQ_OFFSET=$NOAA_18_FREQ_OFFSET
   export SAT_MIN_ELEV=$NOAA_18_SAT_MIN_ELEV
-fi
-if [ "$SAT_NAME" == "NOAA 19" ]; then
+elif [ "$SAT_NAME" == "NOAA 19" ]; then
   export GAIN=$NOAA_19_GAIN
   export SUN_MIN_ELEV=$NOAA_19_SUN_MIN_ELEV
   export SDR_DEVICE_ID=$NOAA_19_SDR_DEVICE_ID
-  export BIAS_TEE=$NOAA_19_ENABLE_BIAS_TEE
+  if [ "$NOAA_19_ENABLE_BIAS_TEE" != "usb" ]; then
+      export BIAS_TEE=$NOAA_19_ENABLE_BIAS_TEE
+  else
+      usb_bias_tee="true"
+  fi
   export FREQ_OFFSET=$NOAA_19_FREQ_OFFSET
   export SAT_MIN_ELEV=$NOAA_19_SAT_MIN_ELEV
 fi
@@ -74,11 +86,15 @@ if pgrep "rtl_fm" > /dev/null; then
   exit 1
 fi
 
-log " "
-log " "
-log " "
-log "Receive NOAA Processes starting...."
+log " " "INFO"
+log " " "INFO"
+log " " "INFO"
+log "Receive NOAA Processes starting...." "INFO"
 
+if [ "$usb_bias_tee" == "true" ]; then
+    # turn on rtl-sdr v3.0 bias tee
+    rtl_biast -b 1
+fi
 if [ "$NOAA_RECEIVER" == "rtl_fm" ]; then
   log "Starting rtl_fm record" "INFO"
   ${AUDIO_PROC_DIR}/noaa_record_rtl_fm.sh "${SAT_NAME}" $CAPTURE_TIME "${AUDIO_FILE_BASE}.wav" >> $NOAA_LOG 2>&1
@@ -86,6 +102,10 @@ fi
 if [ "$NOAA_RECEIVER" == "gnuradio" ]; then
   log "Starting gnuradio record" "INFO"
   ${AUDIO_PROC_DIR}/noaa_record_gnuradio.sh "${SAT_NAME}" $CAPTURE_TIME "${AUDIO_FILE_BASE}.wav" >> $NOAA_LOG 2>&1
+fi
+if [ "$usb_bias_tee" == "true" ]; then
+    # turn off rtl-sdr v3.0 bias tee
+    rtl_biast -b 0
 fi
 
 # wait for files to close

@@ -49,12 +49,16 @@ SCRIPTS_DIR="${NOAA_HOME}/scripts"
 AUDIO_PROC_DIR="${SCRIPTS_DIR}/audio_processors"
 IMAGE_PROC_DIR="${SCRIPTS_DIR}/image_processors"
 PUSH_PROC_DIR="${SCRIPTS_DIR}/push_processors"
+# I'm using reynico/pd120_decoder
+ISS_SSTV_PROC_DIR="${HOME}/pd120_decoder/pd120_decoder"
 
 # frequency ranges for objects
 METEOR_FREQ="137.1000"
 NOAA15_FREQ="137.6200"
 NOAA18_FREQ="137.9125"
 NOAA19_FREQ="137.1000"
+ISS_SSTV_FREQ="145.8000"
+SPROUT_SSTV_FREQ="437.6000"
 
 # current date and time
 export START_DATE=$(date '+%d-%m-%Y %H:%M')

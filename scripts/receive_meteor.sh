@@ -37,7 +37,11 @@ export PASS_SIDE=$8
 export GAIN=$METEOR_M2_GAIN
 export SUN_MIN_ELEV=$METEOR_M2_SUN_MIN_ELEV
 export SDR_DEVICE_ID=$METEOR_M2_SDR_DEVICE_ID
-export BIAS_TEE=$METEOR_M2_ENABLE_BIAS_TEE
+if [ "$METEOR_M2_ENABLE_BIAS_TEE" != "usb" ]; then
+    export BIAS_TEE=$METEOR_M2_ENABLE_BIAS_TEE
+else
+    export BIAS_TEE=""
+fi
 export FREQ_OFFSET=$METEOR_M2_FREQ_OFFSET
 export SAT_MIN_ELEV=$METEOR_M2_SAT_MIN_ELEV
 
@@ -110,7 +114,17 @@ polar_az_el=0
 polar_direction=0
 if [ "$METEOR_RECEIVER" == "rtl_fm" ]; then
   log "Starting rtl_fm record" "INFO"
+  if [ "$METEOR_M2_ENABLE_BIAS_TEE" == "usb" ]; then
+      # turn on rtl-sdr v3.0 bias tee
+      rtl_biast -b 1
+  fi
+
   ${AUDIO_PROC_DIR}/meteor_record_rtl_fm.sh $CAPTURE_TIME "${RAMFS_AUDIO_BASE}.wav" >> $NOAA_LOG 2>&1
+
+  if [ "$METEOR_M2_ENABLE_BIAS_TEE" == "usb" ]; then
+      # turn off rtl-sdr v3.0 bias tee
+      rtl_biast -b 0
+  fi
 
   log "Demodulation in progress (QPSK)" "INFO"
   qpsk_file="${NOAA_HOME}/tmp/meteor/${FILENAME_BASE}.qpsk"
@@ -244,7 +258,17 @@ if [ "$METEOR_RECEIVER" == "rtl_fm" ]; then
   fi
 elif [ "$METEOR_RECEIVER" == "gnuradio" ]; then
   log "Starting gnuradio record" "INFO"
+  if [ "$METEOR_M2_ENABLE_BIAS_TEE" == "usb" ]; then
+      # turn on rtl-sdr v3.0 bias tee
+      rtl_biast -b 1
+  fi
+
   ${AUDIO_PROC_DIR}/meteor_record_gnuradio.sh $CAPTURE_TIME "${RAMFS_AUDIO_BASE}.s" >> $NOAA_LOG 2>&1
+
+  if [ "$METEOR_M2_ENABLE_BIAS_TEE" == "usb" ]; then
+      # turn off rtl-sdr v3.0 bias tee
+      rtl_biast -b 0
+  fi
 
   log "Waiting for files to close" "INFO"
   sleep 2
