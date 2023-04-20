@@ -6,7 +6,7 @@ Hopefully I've put down enough breadcrumbs here so that I can build a new instal
 
 I restored SSTV reception from the ISS using [pd120_decoder] (https://github.com/reynico/pd120_decoder.git) - in the past I've found it to be less capable of pulling an image than some of the PC software but there's no ARISS SSTV activity at the moment to test with.
 
-I've also tried to capture SPROUT's SSTV Sunday broadcasts, decoding using [sstv] (https://github.com/colaclanth/sstv.git) - so far nothing... but I'm not sure SPROUT still sends SSTV or if it's even active.
+I've also tried to capture SPROUT's SSTV Sunday broadcasts, decoding using [sstv] (https://github.com/colaclanth/sstv.git) - so far nothing... but I'm not sure SPROUT still sends SSTV or if it's even active. (Also it's UHF, not VHF like the others.)
 
 I'm using [RTL-SDR] (git://git.osmocom.org/rtl-sdr.git) and rtl_fm - the gnuradio option has NOT been tested at all.
 
